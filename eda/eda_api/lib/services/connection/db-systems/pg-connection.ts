@@ -18,6 +18,9 @@ export class PgConnection extends AbstractConnection {
 
     async getclient() {
         try {
+            if (!this.config.hasOwnProperty('ssl')) {
+                this.config.ssl= { rejectUnauthorized: false };
+            }
             const connection = new PgClient(this.config);
             return connection;
         } catch (err) {
