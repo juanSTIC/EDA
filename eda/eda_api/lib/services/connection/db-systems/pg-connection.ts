@@ -18,10 +18,10 @@ export class PgConnection extends AbstractConnection {
 
     async getclient() {
         try {
-            if (!this.config.hasOwnProperty('ssl')) {
-                this.config.ssl= { rejectUnauthorized: false };
-            }
+            //forzado ssl
+            this.config.ssl= { rejectUnauthorized: false };
             const connection = new PgClient(this.config);
+            
             return connection;
         } catch (err) {
             throw err;
@@ -30,6 +30,8 @@ export class PgConnection extends AbstractConnection {
 
     async tryConnection(): Promise<any> {
         try {
+            //forzado ssl
+            this.config.ssl= { rejectUnauthorized: false };
             this.client = await this.getclient();
             console.log('\x1b[32m%s\x1b[0m', 'Connecting to PostgreSQL database...\n');
             await this.client.connect();
