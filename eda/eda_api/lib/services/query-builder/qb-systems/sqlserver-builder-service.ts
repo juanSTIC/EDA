@@ -589,5 +589,7 @@ public processFilter(filter: any, columnType: string) {
     return output;
   }
 
+  public getColumnRelations(columnOrigin: any, columnsDest: any[]): any  {}
+
 
 }

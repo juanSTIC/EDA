@@ -235,4 +235,6 @@ export class SnowflakeConnection extends AbstractConnection {
     `
   }
 
+  public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {}
+
 }

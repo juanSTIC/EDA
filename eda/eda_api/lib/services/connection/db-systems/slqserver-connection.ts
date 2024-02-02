@@ -274,4 +274,6 @@ export class SQLserverConnection extends AbstractConnection {
     generateInserts(queryData: any): string {
         throw new Error('Method not implemented.');
     }
+
+    public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {}
 }

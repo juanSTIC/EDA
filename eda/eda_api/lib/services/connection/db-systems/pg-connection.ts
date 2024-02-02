@@ -282,6 +282,9 @@ export class PgConnection extends AbstractConnection {
 
     }
 
-
+    public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {
+        this.queryBuilder = new PgBuilderService(null, dataModel, null);
+        return this.queryBuilder.getColumnRelations(columnOrigin, columnsDest);
+    }
 
 }

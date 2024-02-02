@@ -603,6 +603,71 @@ public getHavingColname(column: any){
     query = query.slice(0, index) + `as "${query.slice(index + 3)}" `;
     return query;
   }
+
+  public getColumnRelations(columnOrigin: any, columnsDest: any[]): any  {
+    const graph = this.buildGraph();
+
+    let dest = [...new Set(columnsDest)];
+    let origin = columnOrigin;
+
+    /** ARBRE DELS JOINS A FER */
+    // let joinTree = this.findAllPaths(graph, origin, dest[0]);
+
+    let joinTreeObj = {};
+    for (const nextTable of dest) {
+      joinTreeObj[nextTable] = this.findAllPaths(graph, origin, nextTable);
+    }
+
+    // Busco relacions directes.
+    // if(!this.validateJoinTree(joinTree, dest)){
+    //     let exito = false;
+    //     let new_origin: string;
+    //     let new_dest = [...dest];
+    //     let new_joinTree: any;
+
+    //     for (const table of dest) {
+    //         new_origin = table;
+    //         new_dest =  [...dest].filter(e => e !== table);
+    //         new_dest.push(origin);
+
+    //         new_joinTree = this.dijkstraAlgorithm(graph, new_origin, new_dest.slice(0));
+
+    //         if(this.validateJoinTree(new_joinTree, new_dest)){
+    //             exito = true;
+    //             break;
+    //         }
+    //     }
+
+    //     if(exito){
+    //         origin = new_origin;
+    //         dest = [...new_dest];
+    //         joinTree = new_joinTree;
+    //     }
+    // }
+
+    const result = {};
+
+    // const findJoinColumns = (tableA: any, tableB: any) => {
+    //   const table = this.tables.find(table => table.table_name === tableA);
+    //   const source_columns = table.relations.filter((relation: any) => relation.target_table === tableB).map((rel) => rel.source_column[0]);
+    //   return source_columns;
+    // }
+
+    // for (const join of joins) {
+    //   let joinColumns = findJoinColumns(join[1], join[0]);
+    //   result[join[1]] = joinColumns;
+    // }
+
+    for (const tableKey of Object.keys(joinTreeObj)) {
+      const tablePaths = joinTreeObj[tableKey];
+      result[tableKey] = this.findColumnsInPaths(tablePaths);
+    }
+
+    console.log(JSON.stringify(result));
+
+    return result;
+  }
+
 }
 
 

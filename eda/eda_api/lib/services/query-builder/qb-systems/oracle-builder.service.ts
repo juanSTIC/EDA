@@ -581,6 +581,8 @@ export class OracleBuilderService extends QueryBuilderService {
     query = query.slice(0, index) + `"${query.slice(index + 3)}"`;
     return query;
   }
+
+  public getColumnRelations(columnOrigin: any, columnsDest: any[]): any  {}
 }
 
 

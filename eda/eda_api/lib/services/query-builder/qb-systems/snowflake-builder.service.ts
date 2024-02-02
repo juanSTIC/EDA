@@ -582,5 +582,6 @@ public filterToString(filterObject: any ) {
     return output;
   }
 
+  public getColumnRelations(columnOrigin: any, columnsDest: any[]): any  {}
 
 }

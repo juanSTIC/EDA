@@ -210,8 +210,7 @@
                                     </span>
 
                                     <span>
-                                        <i class="pi pi-info-circle" style="cursor: pointer; margin-top: -5px;"
-                                            (click)="getQuery($event)" [pTooltip]="ptooltipViewQuery"></i>
+                                        <i class="pi pi-info-circle" style="cursor: pointer; margin-top: -5px;" (click)="getQuery($event)" [pTooltip]="ptooltipViewQuery"></i>
                                     </span>
                                 </div>
 
@@ -251,15 +250,27 @@
                                             Resumen de atributos
                                         </h5>
 
-                                        <div *ngFor='let column of this.currentQuery'>
+                                        <div *ngFor="let column of this.currentQuery">
                                             <span> {{ getNiceTableName( column.table_id )  }} - {{column.display_name.default}}</span>
 
-                                            <span *ngFor='let aggregation of column.aggregation_type'>
+                                            <ng-container *ngFor="let aggregation of column.aggregation_type">
                                                 <span
                                                     *ngIf='aggregation.selected === true && aggregation.display_name !== "no"'>
                                                     ( {{aggregation.display_name}} )
                                                 </span>
-                                            </span>
+                                            </ng-container>
+
+                                            <ng-container *ngIf="display_v.showColumnRelations">
+
+                                                <p-dropdown *ngIf="column.joins && column.joins?.length > 1" [options]="column.joins" [(ngModel)]="column.join_tree" [group]="true" appendTo="body">
+                                                    <ng-template let-group pTemplate="group">
+                                                        <div class="flex align-items-center">
+                                                            <span>{{group.label}}</span>
+                                                        </div>
+                                                    </ng-template>
+                                                </p-dropdown>
+                                                
+                                            </ng-container>
                                         </div>
                                     </div>
 

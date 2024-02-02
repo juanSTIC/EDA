@@ -12,6 +12,8 @@ router.get('/:id', authGuard, DashboardController.getDashboard);
 
 router.post('', authGuard, DashboardController.create);
 
+router.post('/relations', authGuard, DashboardController.getColumnRelations);
+
 router.post('/query', authGuard, DashboardController.execQuery);
 
 router.post('/getQuey', authGuard, DashboardController.getQuery);

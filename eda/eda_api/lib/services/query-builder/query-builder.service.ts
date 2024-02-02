@@ -1,6 +1,4 @@
-import { Console } from 'console';
 import * as _ from 'lodash';
-import { filter } from 'lodash';
 
 class TreeNode {
     public value: string;
@@ -26,10 +24,10 @@ export abstract class QueryBuilderService {
 
         this.queryTODO = queryTODO;
         this.dataModel = dataModel;
-        this.user = user._id;
-        this.usercode = user.email;
-        this.groups = user.role;
-        this.tables = dataModel.ds.model.tables;
+        this.user = user?._id;
+        this.usercode = user?.email;
+        this.groups = user?.role;
+        this.tables = dataModel?.ds?.model?.tables;
     }
 
     abstract getFilters(filters, type: string);
@@ -116,10 +114,12 @@ export abstract class QueryBuilderService {
         }
 
         /** Ajusto els joins per que siguin left join en cas els value list*/
-        if( valueListList.length > 0   ){
+        if(valueListList.length > 0){
                 valueListList.forEach(v=>{
                     valueListJoins.push(v.valueListSource.target_table);
-                    if(v.valueListSource.bridge_table && v.valueListSource.bridge_table != undefined && v.valueListSource.bridge_table.length >= 1  ){ // les taules pont també han de ser left joins
+                    // les taules pont també han de ser left joins
+
+                    if(v.valueListSource.bridge_table && v.valueListSource.bridge_table != undefined && v.valueListSource.bridge_table.length >= 1  ){
                         valueListJoins.push(v.valueListSource.bridge_table );
                     }
                 });
@@ -152,11 +152,11 @@ export abstract class QueryBuilderService {
         const columns = separedCols[0];
         const grouping = separedCols[1];
 
-
         /** ARBRE DELS JOINS A FER */
         let joinTree = this.dijkstraAlgorithm(graph, origin, dest.slice(0));
+
         // Busco relacions directes.
-        if( ! this.validateJoinTree(  joinTree, dest ) ){
+        if(!this.validateJoinTree(joinTree, dest)){
             let exito = false;
             let new_origin  = '';
             let new_dest  = [...dest];
@@ -218,14 +218,36 @@ export abstract class QueryBuilderService {
         }
     }
 
+    public old_buildGraph() {
+        const graph = [];
+        //No fa falta treure les relacions ocultes per que les poso al array no_relations en guardar-ho
+        //Totes les relacions ja son bones. Ho deixo per que el bucle ja es fa...
+        this.tables.forEach(t => {
+            const relations = [];
+            const rel_col = [];
+            // console.log(JSON.stringify(t.relations));
+            t.relations.forEach((r: any) => {
+                relations.push(r.target_table);
+                rel_col.push(`${r.target_table}.${r.target_column[0]}`);
+            });
+            
+            graph.push({ name: t.table_name, rel: relations, rel_col });
+        });
+        return graph;
+    }
+
     public buildGraph() {
         const graph = [];
         //No fa falta treure les relacions ocultes per que les poso al array no_relations en guardar-ho
         //Totes les relacions ja son bones. Ho deixo per que el bucle ja es fa...
         this.tables.forEach(t => {
             const relations = [];
-            t.relations
-                .forEach(r => { relations.push(r.target_table) });
+            const rel_col = [];
+            t.relations.forEach((r: any) => {
+                if (!relations.includes(r.target_table)) relations.push(r.target_table);
+                // rel_col.push({[r.target_table]: r.target_column[0]});
+            });
+            
             graph.push({ name: t.table_name, rel: relations });
         });
         return graph;
@@ -233,13 +255,12 @@ export abstract class QueryBuilderService {
 
 
     /** valida relaciones directas */
-    public validateJoinTree(joinTree:any, dest:any){
-        for (let i = 0; i < dest.length; i++) {
-            let elem = joinTree.find(n => n.name === dest[i]);
-            if(elem.dist > 1 ){
-                return false;
-            }
-          }
+    public validateJoinTree(joinTree: any[], dest: any[]) {
+        for (const table of dest) {
+            const join = joinTree.find((tree)=> tree.name === table);
+            if (join.dist > 1) return false
+        }
+
         return true;
     }
 
@@ -347,11 +368,11 @@ export abstract class QueryBuilderService {
             a.every((val, index) => val === b[index]);
     }
     
-    public dijkstraAlgorithm(graph, origin, dest) {
+    public old_dijkstraAlgorithm(graph: any[], origin: string, dest: any[]) {
 //        this.getGraph(graph, origin, dest);
         const not_visited = [];
         const v = [];
-
+        console.log(graph);
         graph.forEach(n => {
             if (n.name !== origin) {
                 not_visited.push({ name: n.name, dist: Infinity, path: [] });
@@ -402,7 +423,129 @@ export abstract class QueryBuilderService {
         return (v);
     }
 
+    public dijkstraAlgorithm(graph: any[], origin: string, dest: any[]) {
+        const notVisited = new Set(graph.map(n => ({
+            name: n.name,
+            dist: (n.name === origin) ? 0 : Infinity,
+            path: []
+        })));
+    
+        const nodeMap = graph.reduce((acc, node) => {
+            acc[node.name] = node;
+            return acc;
+        }, {});
+    
+        const tree = [];
+    
+        while (notVisited.size > 0 && dest.length > 0) {
+            let min = Array.from(notVisited).reduce((minNode, node) => (node.dist < minNode.dist) ? node : minNode);
+    
+            const currentNode = nodeMap[min.name];
+            for (const neighborName of currentNode.rel) {
+                const neighbor = Array.from(notVisited).find(n => n.name === neighborName);
+                if (neighbor) {
+                    if (neighbor.dist > min.dist + 1) {
+                        neighbor.dist = min.dist + 1;
+                        neighbor.path = [...min.path, min.name];
+                    }
+                }
+            }
+    
+            tree.push(min);
+            notVisited.delete(min);
+    
+            dest = dest.filter(n => !tree.some(x => x.name === n));
+        }
+    
+        return tree;
+    }
 
+    public findAllPaths(graph, startNode, endNode, currentPath = [], visitedNodes = new Set()) {
+        // Encontrar el nodo actual en el grafo
+        const node = graph.find(node => node.name === startNode);
+      
+        // Verificar si el nodo actual existe en el grafo
+        if (!node) {
+          console.error(`El nodo ${startNode} no existe en el grafo.`);
+          return [];
+        }
+      
+        // Añadir el nodo actual al camino
+        currentPath.push(startNode);
+      
+        // Marcar el nodo actual como visitado
+        visitedNodes.add(startNode);
+      
+        // Encontrar todas las relaciones del nodo actual
+        const relationships = node.rel.filter(neighbor => !visitedNodes.has(neighbor));
+      
+        // Almacenar los caminos encontrados
+        let paths = [];
+      
+        // Recorrer todas las relaciones
+        for (const neighbor of relationships) {
+          // Evitar ciclos, no volver a visitar nodos ya presentes en el camino actual
+          if (!currentPath.includes(neighbor)) {
+            // Si el vecino es el nodo de destino, añadir el camino actual a la lista de caminos
+            if (neighbor === endNode) {
+              currentPath.push(neighbor);
+              paths.push([...currentPath]);  // Almacenar el camino encontrado
+              currentPath.pop();  // Quitar el nodo de destino para explorar más caminos
+            } else {
+              // Recursivamente explorar el vecino
+              const subPaths = this.findAllPaths(graph, neighbor, endNode, currentPath, visitedNodes);
+              paths = paths.concat(subPaths);
+            }
+          }
+        }
+      
+        // Desmarcar el nodo actual al retroceder en el camino
+        visitedNodes.delete(startNode);
+        currentPath.pop();
+      
+        return paths;
+    }
+    
+    findColumnsInPaths(paths) {
+        const result = {};
+    
+        // Recorrer cada camino en los paths
+        for (const path of paths) {
+            const pathKey = path.join('>');
+    
+            // Inicializar el array de columnas para esta tabla
+            result[pathKey] = [];
+    
+            // Recorrer las tablas en el camino
+            for (let i = 0; i < path.length - 1; i++) {
+                const currentTable = path[i];
+                const nextTable = path[i + 1];
+    
+                // Encontrar todas las relaciones entre las tablas en la información de la tabla
+                const tableInfo = this.tables.find((table) => table.table_name === currentTable)?.relations || [];
+    
+                const relations = tableInfo.filter(info =>
+                    (info.source_table === currentTable && info.target_table === nextTable) ||
+                    (info.source_table === nextTable && info.target_table === currentTable)
+                );
+    
+                // Si se encuentran relaciones, agregar las columnas al resultado
+                if (relations.length > 1) {
+                    const columns = relations.map(relation =>
+                        [`${currentTable}.${relation.source_column[0]}->${nextTable}.${relation.target_column[0]}`]
+                    );
+    
+                    result[pathKey] = result[pathKey].concat(columns);
+                } else if (relations.length === 1) {
+                    const relation = relations[0];
+                    const columns = `${currentTable}.${relation.source_column[0]}->${nextTable}.${relation.target_column[0]}`;
+                    result[pathKey] = result[pathKey].concat(columns);
+                }
+            }
+        }
+    
+        return result;
+    }
 
     /** esto se usa para las consultas que hacemos a bbdd para generar el modelo */
     public simpleQuery(columns: string[], origin: string) {
@@ -427,6 +570,7 @@ export abstract class QueryBuilderService {
         }
         return  res;
     }
+
     public getPermissions(modelPermissions, modelTables, originTable) {
       
         originTable = this.cleanOriginTable(originTable);
@@ -493,7 +637,6 @@ export abstract class QueryBuilderService {
      * @return array with all related tables
      */
     public checkRelatedTables(dbModel, tableName) {
-
         const originTable = dbModel.filter(t => t.table_name === tableName)[0];
         const tablesMap = this.findRelationsRecursive(dbModel, originTable, new Map());
         return Array.from(tablesMap.values());
@@ -521,13 +664,11 @@ export abstract class QueryBuilderService {
     }
 
     public findJoinColumns(tableA: string, tableB: string) {
-
         const table = this.tables.find(x => x.table_name === tableA);
         // No needed to filter visible relations because they are stored in a different array: no_relations
         const source_columns = table.relations.find(x => x.target_table === tableB).source_column;
         const target_columns = table.relations.find(x => x.target_table === tableB).target_column;
         return [target_columns, source_columns];
-
     }
 
 
@@ -549,15 +690,11 @@ export abstract class QueryBuilderService {
         else if (filter === 'not_null') return 3;
     }
 
-
-
     public sqlBuilder(userQuery: any, filters: any[]): string {
-
         const graph = this.buildGraph();
         const schema = this.dataModel.ds.connection.schema;
         const modelPermissions = this.dataModel.ds.metadata.model_granted_roles;
         let query = userQuery.SQLexpression;
-
 
         if (modelPermissions.length > 0) {
 
@@ -613,7 +750,6 @@ export abstract class QueryBuilderService {
     }
 
     sqlReplacePermissions = (sqlquery: string, table: string, graph: any, tableWithSchema: string) => {
-
         const SCHEMA = this.dataModel.ds.connection.schema;
         const origin = table;
         const dest = [];
@@ -662,8 +798,6 @@ export abstract class QueryBuilderService {
         return noLineComments.join(' ')
     }
 
-
-
     parseTablesInQuery = (sqlQuery: string) => {
         /**remove  comments */
         let reg = new RegExp(/[()]/, 'g')
@@ -686,7 +820,6 @@ export abstract class QueryBuilderService {
         }
         return tables.filter(this.onlyUnique);
     }
-
 
     onlyUnique = (value, index, self) => {
         return self.indexOf(value) === index;
@@ -734,7 +867,6 @@ export abstract class QueryBuilderService {
 
 
     public BuildTree = (query) => {
-
         let sqlQuery = query.replace(/[\t\n\r]/gm, '');
         sqlQuery = `(${sqlQuery})`;
 
@@ -794,7 +926,6 @@ export abstract class QueryBuilderService {
     }
 
     public replaceOnTree = (root) => {
-
         if (root.child.length === 0) {
             if (!this.checkFormat(root.value)) return false;
             else return true;
@@ -815,11 +946,9 @@ export abstract class QueryBuilderService {
             if (!this.checkFormat(str)) return false;
             else return true;
         }
-
     }
 
     public checkFormat = (expression) => {
-
         const words = expression.split(/\s+/);
         let currentOperand = '';
         for (let i = 0; i < words.length; i++) {
@@ -840,7 +969,6 @@ export abstract class QueryBuilderService {
         }
 
         return true;
-
     }
 
     public getEqualFilters = (filters) => {
@@ -888,6 +1016,40 @@ export abstract class QueryBuilderService {
         }
 
         return filtersString;
+    }
+
+    public getColumnRelations(columnOrigin: any, columnsDest: any[]): any {
+        const graph = this.buildGraph();
+        console.log('GRAPH ----->'+ JSON.stringify(graph));
+        let dest = [...new Set(columnsDest)];
+        let origin = columnOrigin;
+        
+        console.log('LETS FIND TABLE PATH')
+        let joinTreeObj = {};
+        for (const nextTable of dest) {
+            joinTreeObj[nextTable] = this.findAllPaths(graph, origin, nextTable);
+        }
+
+        
+        console.log('TABLE PATH DONE!!')
+        console.log(JSON.stringify(joinTreeObj));
+        console.log('=========================')
+        console.log('=========================')
+
+        const result = {};
+        console.log('LETS FIND COLUMNS PATH')
+        for (const tableKey of Object.keys(joinTreeObj)) {
+            const tablePaths = joinTreeObj[tableKey];
+            result[tableKey] = this.findColumnsInPaths(tablePaths);
+        }
+
+        console.log('COLUMN PATH DONE!!')
+        console.log(JSON.stringify(joinTreeObj));
+        console.log('=========================')
+        console.log('FINAL RESULT -->>>')
+        console.log(JSON.stringify(result));
+
+        return result;
     }
 
 }

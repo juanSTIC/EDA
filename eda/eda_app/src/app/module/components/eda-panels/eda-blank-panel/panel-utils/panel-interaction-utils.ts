@@ -50,6 +50,8 @@ export const PanelInteractionUtils = {
     // Sort columns by default display name
     ebp.columns = filteredColumns.sort((a, b) => a.display_name.default.localeCompare(b.display_name.default));
 
+    PanelInteractionUtils.checkColumnRelations(ebp);
+
     // Reset input and update table data if the findTable ngModel is not empty
     if (!_.isEqual(ebp.inputs.findTable.ngModel, '')) {
         ebp.inputs.findTable.reset();
@@ -289,13 +291,23 @@ export const PanelInteractionUtils = {
     PanelInteractionUtils.searchRelations(ebp, c);        // Busca les relacions de la nova columna afegida a la consulta
     PanelInteractionUtils.handleAggregationType(ebp, c);  // Comprovacio d'agregacions de la nova columna afegida a la consulta
     PanelInteractionUtils.handleOrdTypes(ebp, c);         // Comprovacio ordenacio  de la nova columna afegida a la consulta
-   
 
-    ebp.inputs.findColumn.reset();  // resetea las columnas a mostrar
-    PanelInteractionUtils.loadColumns( // Torna a carregar les columnes de la taula
-      ebp, 
-      ebp.tablesToShow.filter(table => table.table_name === ebp.userSelectedTable)[0]);
-  
+    // resetea las columnas a mostrar
+    ebp.inputs.findColumn.reset();
+
+    // Torna a carregar les columnes de la taula
+    PanelInteractionUtils.loadColumns(ebp, ebp.tablesToShow.filter(table => table.table_name === ebp.userSelectedTable)[0]);
+  },
+
+  checkColumnRelations: (panel: EdaBlankPanelComponent) => {
+      const tables = [...new Set(panel.currentQuery.map((query: any) => query.table_id))];
+
+      if (tables.length > 1) {
+        panel.display_v.showColumnRelations = true;
+        panel.loadColumnRelations(tables[0], tables.slice(1));
+      } else {
+        panel.display_v.showColumnRelations = false;
+      }
   },
 
   /**

@@ -187,15 +187,20 @@ export class MysqlConnection extends AbstractConnection {
         return this.execQuery(query);
     }
 
-
-    async getQueryBuilded(queryData: any, dataModel: any, user: any) {
+    public getQueryBuilded(queryData: any, dataModel: any, user: any) {
         this.queryBuilder = new MySqlBuilderService(queryData, dataModel, user);
         return this.queryBuilder.builder();
     }
 
-    BuildSqlQuery(queryData: any, dataModel: any, user: any){
+    public BuildSqlQuery(queryData: any, dataModel: any, user: any){
         this.queryBuilder = new MySqlBuilderService(queryData, dataModel, user);
         return this.queryBuilder.sqlBuilder(queryData, queryData.filters);
+    }
+
+    public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {
+        this.queryBuilder = new MySqlBuilderService(null, dataModel, null);
+        console.log('LLEGO AQUI??:>>>')
+        return this.queryBuilder.getColumnRelations(columnOrigin, columnsDest);
     }
 
     private async countTable(tableName: string): Promise<any> {
@@ -285,17 +290,16 @@ export class MysqlConnection extends AbstractConnection {
             .join(' ');
     }
 
-    createTable(queryData: any, user:any): string {
+    public createTable(queryData: any, user:any): string {
 
         this.queryBuilder = new MySqlBuilderService(queryData, { ds: { model: { tables: [] } } }, user._id);
         return this.queryBuilder.createTable(queryData);
     }
 
-    generateInserts(queryData: any, user:any): string {
+    public generateInserts(queryData: any, user:any): string {
  
         this.queryBuilder = new MySqlBuilderService(queryData, { ds: { model: { tables: [] } } }, user._id);
         return this.queryBuilder.generateInserts(queryData);
     }
-
 
 }

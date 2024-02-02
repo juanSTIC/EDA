@@ -40,6 +40,8 @@ export abstract class AbstractConnection {
 
     abstract GetDefaultSchema(): string;
 
+    abstract getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]): any;
+
     normalizeType(type: string) {
         let cleanType = type.replace(/ *\([^)]*\) */g, '').toUpperCase();
 

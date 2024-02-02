@@ -218,4 +218,6 @@ export class BigQueryConnection extends AbstractConnection {
     throw new Error("Method not implemented.");
   }
 
+  public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {}
+
 }

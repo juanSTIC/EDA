@@ -657,4 +657,6 @@ export class JSONWebServiceConnection extends AbstractConnection {
 	getForeignKeysQuery() {
 		return null
 	}
+
+	public getColumnRelations(dataModel: any, columnOrigin: any, columnsDest: any[]) {}
 }

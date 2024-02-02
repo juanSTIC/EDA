@@ -103,7 +103,8 @@ export class EdaBlankPanelComponent implements OnInit {
         disablePreview: true,
         disableQueryInfo: true,
         notSaved: false,
-        minispinnerSQL: false
+        minispinnerSQL: false,
+        showColumnRelations: false
     };
 
     public index: number;
@@ -163,6 +164,8 @@ export class EdaBlankPanelComponent implements OnInit {
         { icon: 'pi pi-align-right', joinType: 'right' }
         //,         { icon: 'pi pi-align-justify', joinType: 'full outer' }
     ];
+
+    public joinsTree: any = [];
 
 
     /**panel chart component configuration */
@@ -1054,8 +1057,7 @@ export class EdaBlankPanelComponent implements OnInit {
         this.modeSQL = true;
     }
 
-    public async changeQueryMode(): Promise<void> {
-
+    public changeQueryMode(): void {
         this.currentSQLQuery = '';
         this.currentQuery = [];
         this.filtredColumns = [];
@@ -1065,9 +1067,10 @@ export class EdaBlankPanelComponent implements OnInit {
     public accopen(e){
 
     }
+
     /** This funciton return the display name for a given table. Its used for the query resumen      */
-    public getNiceTableName(  table ){
-         return this.tables.find( t => t.table_name === table).display_name.default;
+    public getNiceTableName(table: any) {
+        return this.tables.find(t => t.table_name === table).display_name.default;
     }
 
     public onWhatIfDialog(): void {
@@ -1076,6 +1079,55 @@ export class EdaBlankPanelComponent implements OnInit {
 
     public onCloseWhatIfDialog(): void {
         this.display_v.whatIf_dialog = false;
+    }
+
+    public async loadColumnRelations(columnOrigin: any, columnsDest: any[]): Promise<void> {
+        const params = {
+            model_id: this.inject.dataSource._id,
+            origin: columnOrigin,
+            dest: columnsDest
+        };
+
+        this.dashboardService.getColumnRelations(params).subscribe(
+            (response) => {
+                this.joinsTree = response;
+                this.getColumnsJoins();
+            }, (err) => {
+                throw err;
+            }
+        )
+    }
+
+    public getColumnsJoins(): void {
+        console.log(this.joinsTree);
+
+        for (const column of this.currentQuery) {
+            if (this.joinsTree[column.table_id]) {
+                column.joins = [
+                    { label: 'Directes', items: [] },
+                    { label: 'Indirectes', items: [] }
+                ];
+                
+                for (let joinKey of Object.keys(this.joinsTree[column.table_id])) {
+                    const joins = this.joinsTree[column.table_id][joinKey];
+
+                    if (joins.length > 1) {
+                        if (joinKey.split('>').length == 2) {
+                            for (const join of joins) {
+                                let joinPath = '';
+                                if (Array.isArray(join)) {
+                                    joinPath = join[0].split('->')[0].split('.')[1];
+                                } else {
+                                    joinPath = join.split('->')[0].split('.')[1];
+                                }
+                                column.joins[0].items.push({ value: joinPath, label: `via ${joinPath}`, direct: true });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
     }
     
 }

@@ -617,6 +617,23 @@ export class DashboardController {
     return uniquesForbiddenTables
   }
 
+  static async getColumnRelations(req: Request, res: Response, next: NextFunction) {
+    try {
+      const connection = await ManagerConnectionService.getConnection(req.body.model_id);
+      const dataModel = await connection.getDataSource(req.body.model_id);
+
+      const columnOrigin = req.body.origin;
+      const columnsDest = req.body.dest;
+
+      const relations = connection.getColumnRelations(dataModel, columnOrigin, columnsDest);
+      
+      return res.status(200).json(relations);
+    } catch (err) {
+      console.log(err)
+      next(new HttpException(400, 'Some error ocurred loading dashboards'))
+    }
+  }
+
   /**
    * Executa una consulta EDA per un dashboard
    */
@@ -697,24 +714,15 @@ export class DashboardController {
           myQuery.forSelector = false;
       }
 
-      const query = await connection.getQueryBuilded(
-        myQuery,
-        dataModelObject,
-        req.user
-      )
+      const query = await connection.getQueryBuilded(myQuery, dataModelObject, req.user);
 
       /**---------------------------------------------------------------------------------------------------------*/
 
-      console.log(
-        '\x1b[32m%s\x1b[0m',
-        `QUERY for user ${req.user.name}, with ID: ${req.user._id
-        },  at: ${formatDate(new Date())}  for Dashboard:${req.body.dashboard.dashboard_id
-        } and Panel:${req.body.dashboard.panel_id}  `
-      )
-      console.log(query)
-      console.log(
-        '\n-------------------------------------------------------------------------------\n'
-      )
+      console.log('\x1b[32m%s\x1b[0m',
+        `QUERY for user ${req.user.name}, with ID: ${req.user._id}, 
+        at: ${formatDate(new Date())}  for Dashboard:${req.body.dashboard.dashboard_id} and Panel:${req.body.dashboard.panel_id}`);
+      console.log(query);
+      console.log('\n-------------------------------------------------------------------------------\n');
 
       /**cached query */
       let cacheEnabled =
