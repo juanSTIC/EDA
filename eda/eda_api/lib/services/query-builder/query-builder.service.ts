@@ -547,6 +547,7 @@ export abstract class QueryBuilderService {
         else if (['not_in', 'in'].includes(filter)) return 1;
         else if (filter === 'between') return 2;
         else if (filter === 'not_null') return 3;
+        else if (filter === 'is_null') return 4;
     }
 
 
